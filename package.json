@@ -9,7 +9,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@effahjoe/results": "npm:@jsr/effahjoe__results",
+    "@effahjoe/results": "npm:@jsr/effahjoe__results@^0.1.0",
     "svelte": "^5.45.2"
   }
 }
