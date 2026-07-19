@@ -1,54 +1,156 @@
+import {
+    writable,
+    get,
+    type Subscriber,
+    type Unsubscriber,
+    type Writable
+} from "svelte/store";
 
-import { writable, get, type Subscriber, type Unsubscriber, type Writable } from "svelte/store";
-import type { IBindable } from "./bindable";
+import type {
+    IBindable
+} from "./bindable";
 
+
+/**
+ * Reactive state container for MVVM ViewModels.
+ *
+ * StateBase provides a Svelte-compatible observable state
+ * with loading and error tracking.
+ *
+ * @example
+ * ```ts
+ * const user = new StateBase({
+ *   name: "John"
+ * });
+ *
+ * user.set({
+ *   name:"Jane"
+ * });
+ * ```
+ */
 export class StateBase<T> implements IBindable<T> {
-  public loading = writable(false);
-  public error = writable<string | null>(null);
-  private readonly initial: T;
-  private state: Writable<T>;
 
-    constructor(initial: T) {
-        this.initial = initial;
-        this.state = writable<T>(this.initial);
+
+    /**
+     * Indicates whether an async operation is running.
+     */
+    public readonly loading: Writable<boolean> =
+        writable(false);
+
+
+    /**
+     * Contains the latest operation error.
+     */
+    public readonly error: Writable<string | null> =
+        writable(null);
+
+
+    private readonly state: Writable<T>;
+
+
+    /**
+     * Creates a new state container.
+     *
+     * @param initial Initial state value.
+     */
+    constructor(
+        initial: T
+    ) {
+
+        this.state =
+            writable<T>(initial);
+
     }
 
-    get value(): T {
+
+    /**
+     * Current state value.
+     */
+    public get value(): T {
+
         return get(this.state);
+
     }
 
-    subscribe(run: Subscriber<T>): Unsubscriber {
+
+    /**
+     * Subscribe to state changes.
+     */
+    public subscribe(
+        run: Subscriber<T>
+    ): Unsubscriber {
+
         return this.state.subscribe(run);
+
     }
 
-    set(value: T) {
+
+    /**
+     * Replace the current state.
+     */
+    public set(
+        value:T
+    ): void {
+
         this.state.set(value);
+
     }
 
-    update(fn: (value: T) => T) {
+
+    /**
+     * Update the current state.
+     */
+    public update(
+        fn:(value:T)=>T
+    ): void {
+
         this.state.update(fn);
+
     }
 
 
-  // here there is an issue cause due to svelte query here s
-  //  implementation may change
-  /**
-   * Load data from a remote source and update the store
-   */
-  async load(fn: () => Promise<T>) {
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const result = await fn();
-      this.state.set(result);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      this.error.set(msg);
-    } finally {
-      this.loading.set(false);
-    }
-  }
+    /**
+     * Load async data and update the state.
+     *
+     * Loading and errors are automatically handled.
+     */
+    public async load(
+        fn:()=>Promise<T>
+    ): Promise<void> {
 
-  // Make this usable as a store with `$mystore`
+
+        this.loading.set(true);
+        this.error.set(null);
+
+
+        try {
+
+            const result =
+                await fn();
+
+
+            this.state.set(result);
+
+
+        } catch(error) {
+
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : String(error);
+
+
+            this.error.set(message);
+
+
+        } finally {
+
+
+            this.loading.set(false);
+
+        }
+
+    }
+
 }
-

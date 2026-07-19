@@ -1,29 +1,72 @@
-
-
+ /**
+  * Defines a cache provider used by ViewModels.
+  *
+  * Cache implementations can store and retrieve
+  * temporary application data.
+  *
+  * @example
+  * ```ts
+  * const users = cache.get<User[]>("users");
+  *
+  * if (!users) {
+  *     cache.set("users", []);
+  * }
+  * ```
+  */
 interface CacheInterface {
+
+
     /**
      * Retrieves an item from the cache.
-     * @param key The key of the item to retrieve.
-     * @returns The cached item or undefined if not found.
+     *
+     * @typeParam T The expected cached value type.
+     *
+     * @param key Unique cache identifier.
+     *
+     * @returns The cached value or `undefined`
+     * when the key does not exist.
      */
-    get<T>(key: string): T | undefined;
+    get<T>(
+        key:string
+    ): T | undefined;
+
+
 
     /**
-     * Sets an item in the cache.
-     * @param key The key of the item to set.
-     * @param value The value of the item to set.
+     * Stores an item in the cache.
+     *
+     * @typeParam T The cached value type.
+     *
+     * @param key Unique cache identifier.
+     *
+     * @param value Value to store.
      */
-    set<T>(key: string, value: T): void;
+    set<T>(
+        key:string,
+        value:T
+    ):void;
+
+
 
     /**
-     * Removes an item from the cache.
-     * @param key The key of the item to remove.
+     * Removes a cached item.
+     *
+     * @param key Unique cache identifier.
      */
-    remove(key: string): void;
+    remove(
+        key:string
+    ):void;
+
+
 
     /**
-     * Clears the entire cache.
+     * Removes all cached items.
      */
-    clear(): void;
+    clear():void;
+
 }
-export type { CacheInterface as ICache };
+
+
+export type {
+    CacheInterface as ICache
+};

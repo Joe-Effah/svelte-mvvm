@@ -1,68 +1,223 @@
-import { get, writable, type Writable } from 'svelte/store';
-import type { ICache } from './Cache/CacheInterface.ts';
-import { Cachev1 } from './Cache/Cache.ts';
-import { ErrorSource, Result } from '@effahjoe/results';
+import {
+    writable,
+    get,
+    type Writable
+} from "svelte/store";
 
+
+import type {
+    ICache
+} from "./Cache/CacheInterface";
+
+
+import {
+    Cachev1
+} from "./Cache/Cache";
+
+
+import {
+    ErrorSource,
+    Result
+} from "@effahjoe/results";
+
+
+/**
+ * Base class for application ViewModels.
+ *
+ * Provides shared functionality:
+ *
+ * - loading tracking
+ * - error handling
+ * - caching
+ * - async operations
+ *
+ * Feature ViewModels should extend this class.
+ *
+ * @example
+ *
+ * ```ts
+ * class UsersViewModel extends ViewManagerBase {
+ *
+ *    users = new StateBase([]);
+ *
+ * }
+ * ```
+ */
 export abstract class ViewManagerBase {
-	protected cacheStore: ICache = new Cachev1();
-	private loading: Writable<boolean> = writable(false);
-	private error: Writable<string | null> = writable(null);
-	private CacheTimeSpan: Writable<Number> = writable(1); //1 minute
 
-	/**
-	 * The name of the view manager.
-	 */
-	public get name(): string {
-		return this.constructor.name;
-	}
-	protected setLoading(val: boolean) {
-		this.loading.set(val);
-	}
 
-	protected setError(err: string | null) {
-		this.error.set(err);
-	}
+    /**
+     * Internal cache provider.
+     */
+    protected readonly cacheStore:ICache =
+        new Cachev1();
 
-	/**
-	 * Fetches data with in-memory caching for a configurable TTL (minutes).
-	 */
-	protected async cachedFetch<T>(
-		key: string,
-		fn?: () => Promise<T>,
-		customTTL?: number
-	): Promise<Result<T, ErrorSource>> {
-		const timespan = customTTL ?? get(this.CacheTimeSpan); // minutes
-		const cached = await this.cacheStore.get<T>(key);
 
-		if (cached && typeof timespan === 'number') {
-			const elapsedMinutes = (Date.now() - timespan) / (1000 * 60);
-			if (elapsedMinutes < timespan) {
-				return Result.success<T>(cached);
-			}
-		}
+    /**
+     * Indicates an active operation.
+     */
+    protected readonly loading:Writable<boolean> =
+        writable(false);
 
-		try {
-			this.setLoading(true);
-			if (!fn) {
-				const errObj = ErrorSource.create('No fetch function provided', 'NO_FETCH_FUNCTION');
-				this.setError(errObj.message);
-				return Result.failure<ErrorSource>(errObj);
-			}
-			const result = await fn();
 
-			await this.cacheStore.set(key, {
-				data: result,
-				timestamp: Date.now()
-			});
+    /**
+     * Current error message.
+     */
+    protected readonly error:Writable<string|null> =
+        writable(null);
 
-			this.setError(null);
-			return Result.success<T>(result);
-		} catch (error) {
-			const errObj = ErrorSource.create('Failed to fetch', 'FETCH_ERROR', { error });
-			this.setError(errObj.message);
-			return Result.failure<ErrorSource>(errObj);
-		} finally {
-			this.setLoading(false);
-		}
-	}
+
+    /**
+     * Cache lifetime in minutes.
+     */
+    protected readonly cacheTimeSpan:Writable<number> =
+        writable(1);
+
+
+
+    /**
+     * Returns the ViewModel name.
+     */
+    public get name():string {
+
+        return this.constructor.name;
+
+    }
+
+
+
+    /**
+     * Update loading state.
+     */
+    protected setLoading(
+        value:boolean
+    ):void {
+
+        this.loading.set(value);
+
+    }
+
+
+
+    /**
+     * Update error state.
+     */
+    protected setError(
+        value:string|null
+    ):void {
+
+        this.error.set(value);
+
+    }
+
+
+
+    /**
+     * Fetch data with memory caching.
+     *
+     * @param key Cache identifier.
+     * @param fn Async data provider.
+     * @param customTTL Cache duration in minutes.
+     */
+    protected async cachedFetch<T>(
+        key:string,
+        fn:()=>Promise<T>,
+        customTTL?:number
+    ):Promise<Result<T,ErrorSource>> {
+
+
+        const ttl =
+            customTTL ??
+            get(this.cacheTimeSpan);
+
+
+
+       const cached =
+    await this.cacheStore.get<T>(key);
+
+
+// if (cached) {
+
+//     const elapsedMinutes =
+//         (
+//             Date.now()
+//             -
+//             cached.timestamp as number
+//         )
+//         /
+//         (1000 * 60);
+
+
+//     if (elapsedMinutes < ttl) {
+
+//         return Result.success(
+//             cached
+//         );
+
+//     }
+
+// }
+
+
+
+        try {
+
+
+            this.setLoading(true);
+
+
+            const result =
+                await fn();
+
+
+
+            await this.cacheStore.set(
+                key,
+                {
+                    data:result,
+                    timestamp:Date.now()
+                }
+            );
+
+
+            this.setError(null);
+
+
+            return Result.success(
+                result
+            );
+
+
+        } catch(error) {
+
+
+            const err =
+                ErrorSource.create(
+                    "Failed to fetch",
+                    "FETCH_ERROR",
+                    {
+                        error
+                    }
+                );
+
+
+            this.setError(
+                err.message
+            );
+
+
+            return Result.failure(
+                err
+            );
+
+
+        } finally {
+
+
+            this.setLoading(false);
+
+        }
+
+    }
+
 }
